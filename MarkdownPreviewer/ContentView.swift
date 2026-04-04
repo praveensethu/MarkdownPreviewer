@@ -1,9 +1,7 @@
 import SwiftUI
-import UniformTypeIdentifiers
 
 struct ContentView: View {
     @ObservedObject private var store = TabStore.shared
-    @State private var isDropTargeted = false
 
     private let defaultHTML = MarkdownParser.toHTML("""
     # Welcome to Markdown Previewer
@@ -31,29 +29,14 @@ struct ContentView: View {
             ZStack {
                 WebView(html: store.selectedTab?.html ?? defaultHTML)
 
-                if isDropTargeted {
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(Color.blue, lineWidth: 3)
-                        .background(Color.blue.opacity(0.08))
-                        .cornerRadius(8)
-                        .padding(4)
+                DropOverlay { urls in
+                    for url in urls {
+                        store.openFile(url)
+                    }
                 }
             }
         }
         .background(Color(nsColor: NSColor(red: 0.12, green: 0.12, blue: 0.12, alpha: 1)))
-        .onDrop(of: [UTType.fileURL], isTargeted: $isDropTargeted) { providers in
-            for provider in providers {
-                provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { item, _ in
-                    if let data = item as? Data,
-                       let url = URL(dataRepresentation: data, relativeTo: nil) {
-                        DispatchQueue.main.async {
-                            store.openFile(url)
-                        }
-                    }
-                }
-            }
-            return true
-        }
         .onReceive(NotificationCenter.default.publisher(for: .openMarkdownFile)) { notification in
             if let url = notification.object as? URL {
                 store.openFile(url)
