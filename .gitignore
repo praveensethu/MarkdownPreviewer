@@ -1,5 +1,16 @@
-# Xcode project files
+# Xcode
 MarkdownPreviewer.xcodeproj/
 build/
 DerivedData/
+*.xcuserstate
+*.xcworkspace
+xcuserdata/
+
+# macOS
 .DS_Store
+*.swp
+*~
+
+# Build artifacts
+*.app
+*.zip
