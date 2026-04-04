@@ -1,16 +1,56 @@
 import SwiftUI
 import WebKit
 
+class WebViewCoordinator: NSObject {
+    var webView: WKWebView?
+
+    func exportPDF() {
+        guard let webView = webView else { return }
+        let printInfo = NSPrintInfo.shared.copy() as! NSPrintInfo
+        printInfo.topMargin = 36
+        printInfo.bottomMargin = 36
+        printInfo.leftMargin = 36
+        printInfo.rightMargin = 36
+        printInfo.isHorizontallyCentered = true
+        printInfo.isVerticallyCentered = false
+
+        let printOp = webView.printOperation(with: printInfo)
+        printOp.showsPrintPanel = true
+        printOp.showsProgressPanel = true
+        printOp.run()
+    }
+
+    func findText(_ query: String) {
+        guard let webView = webView else { return }
+        if query.isEmpty {
+            webView.evaluateJavaScript("window.getSelection().removeAllRanges()")
+        } else {
+            let escaped = query.replacingOccurrences(of: "\\", with: "\\\\")
+                .replacingOccurrences(of: "'", with: "\\'")
+            webView.evaluateJavaScript("""
+                window.find('\(escaped)', false, false, true, false, true, false);
+            """)
+        }
+    }
+}
+
 struct WebView: NSViewRepresentable {
     let html: String
+    var coordinator: WebViewCoordinator?
+
+    func makeCoordinator() -> WebViewCoordinator {
+        return coordinator ?? WebViewCoordinator()
+    }
 
     func makeNSView(context: Context) -> WKWebView {
         let webView = WKWebView()
         webView.setValue(false, forKey: "drawsBackground")
+        context.coordinator.webView = webView
         return webView
     }
 
     func updateNSView(_ webView: WKWebView, context: Context) {
+        context.coordinator.webView = webView
         let fullHTML = """
         <!DOCTYPE html>
         <html>
@@ -68,6 +108,17 @@ struct WebView: NSViewRepresentable {
             p { margin: 6px 0; }
             strong { color: #e6e6e6; }
             em { color: #c586c0; }
+            @media print {
+                body { background-color: white; color: #1d1d1f; }
+                h1, h2, h3, strong { color: #1d1d1f; }
+                h1, h2 { border-bottom-color: #ccc; }
+                code { background-color: #f0f0f0; color: #c7254e; }
+                pre { background-color: #f5f5f5; border-color: #ccc; }
+                pre code { color: #333; }
+                a { color: #0066cc; }
+                blockquote { border-left-color: #0066cc; color: #555; }
+                em { color: #333; }
+            }
         </style>
         </head>
         <body>

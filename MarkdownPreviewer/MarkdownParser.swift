@@ -11,19 +11,28 @@ struct MarkdownParser {
             html = mutableHTML as String
         }
 
-        // Headers (h1-h3) — order matters, match ### before ##
-        let headerPatterns: [(String, String)] = [
-            ("^### (.+)$", "<h3>$1</h3>"),
-            ("^## (.+)$", "<h2>$1</h2>"),
-            ("^# (.+)$", "<h1>$1</h1>"),
+        // Headers (h1-h3) — add id attributes for TOC anchors
+        let headerLevels: [(String, Int)] = [
+            ("^### (.+)$", 3),
+            ("^## (.+)$", 2),
+            ("^# (.+)$", 1),
         ]
-        for (pattern, replacement) in headerPatterns {
+        for (pattern, level) in headerLevels {
             if let regex = try? NSRegularExpression(pattern: pattern, options: .anchorsMatchLines) {
-                html = regex.stringByReplacingMatches(
-                    in: html,
-                    range: NSRange(html.startIndex..., in: html),
-                    withTemplate: replacement
-                )
+                let mutable = NSMutableString(string: html)
+                let matches = regex.matches(in: html, range: NSRange(html.startIndex..., in: html))
+                for match in matches.reversed() {
+                    let titleRange = match.range(at: 1)
+                    if let range = Range(titleRange, in: html) {
+                        let title = String(html[range])
+                        let slug = title.lowercased()
+                            .replacingOccurrences(of: " ", with: "-")
+                            .filter { $0.isLetter || $0.isNumber || $0 == "-" }
+                        let replacement = "<h\(level) id=\"\(slug)\">\(title)</h\(level)>"
+                        mutable.replaceCharacters(in: match.range, with: replacement)
+                    }
+                }
+                html = mutable as String
             }
         }
 
