@@ -1,0 +1,5 @@
+# Xcode project files
+MarkdownPreviewer.xcodeproj/
+build/
+DerivedData/
+.DS_Store

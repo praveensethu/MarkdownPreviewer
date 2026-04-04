@@ -1,0 +1,19 @@
+name: MarkdownPreviewer
+options:
+  bundleIdPrefix: com.praveen
+  deploymentTarget:
+    macOS: "13.0"
+  xcodeVersion: "15.0"
+targets:
+  MarkdownPreviewer:
+    type: application
+    platform: macOS
+    sources:
+      - MarkdownPreviewer
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.praveen.MarkdownPreviewer
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        SWIFT_VERSION: "5.9"
+        MACOSX_DEPLOYMENT_TARGET: "13.0"
