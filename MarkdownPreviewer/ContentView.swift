@@ -2,59 +2,42 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 struct ContentView: View {
-    @State private var markdown: String = """
-    # Welcome to Markdown Previewer
-
-    This is a **live preview** markdown editor built with *SwiftUI*.
-
-    ## Features
-
-    - Type markdown on the left
-    - See rendered HTML on the right
-    - Updates live as you type
-    - Drag & drop `.md` files to open them
-
-    ## Code Example
-
-    Here's some inline `code` and a code block:
-
-    ```swift
-    let greeting = "Hello, world!"
-    print(greeting)
-    ```
-
-    ---
-
-    ### Links
-
-    Check out [Apple's SwiftUI docs](https://developer.apple.com/swiftui/) for more.
-
-    > This is a blockquote. It adds visual emphasis to quoted text.
-    """
-
+    @State private var html: String = ""
     @State private var currentFileURL: URL?
     @State private var isDropTargeted = false
 
-    var body: some View {
-        HSplitView {
-            TextEditor(text: $markdown)
-                .font(.system(.body, design: .monospaced))
-                .frame(minWidth: 300)
+    private let defaultMarkdown = """
+    # Welcome to Markdown Previewer
 
-            WebView(html: MarkdownParser.toHTML(markdown))
-                .frame(minWidth: 300)
-        }
-        .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(isDropTargeted ? Color.accentColor : Color.clear, lineWidth: 3)
-                .padding(4)
-        )
-        .onDrop(of: [.fileURL], isTargeted: $isDropTargeted) { providers in
-            guard let provider = providers.first else { return false }
-            _ = provider.loadObject(ofClass: URL.self) { url, _ in
-                guard let url = url else { return }
-                loadFile(from: url)
+    Drop a `.md` file here or use **File → Open** to get started.
+
+    ## Supported Syntax
+
+    - **Bold text** and *italic text*
+    - `inline code` and code blocks
+    - [Links](https://example.com)
+    - Lists, headers, horizontal rules
+
+    > Tip: You can also right-click any `.md` file in Finder and choose "Open With" → MarkdownPreviewer.
+    """
+
+    var body: some View {
+        ZStack {
+            WebView(html: html)
+
+            if isDropTargeted {
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(Color.accentColor, lineWidth: 4)
+                    .background(Color.accentColor.opacity(0.1))
+                    .cornerRadius(12)
+                    .padding(8)
             }
+        }
+        .onAppear {
+            html = MarkdownParser.toHTML(defaultMarkdown)
+        }
+        .onDrop(of: [UTType.fileURL], isTargeted: $isDropTargeted) { providers in
+            handleDrop(providers: providers)
             return true
         }
         .onReceive(NotificationCenter.default.publisher(for: .openMarkdownFile)) { notification in
@@ -62,16 +45,28 @@ struct ContentView: View {
                 loadFile(from: url)
             }
         }
+        .navigationTitle(currentFileURL?.lastPathComponent ?? "Markdown Previewer")
     }
 
-    func loadFile(from url: URL) {
+    private func handleDrop(providers: [NSItemProvider]) {
+        guard let provider = providers.first else { return }
+        provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { item, _ in
+            guard let data = item as? Data,
+                  let url = URL(dataRepresentation: data, relativeTo: nil) else { return }
+            DispatchQueue.main.async {
+                loadFile(from: url)
+            }
+        }
+    }
+
+    private func loadFile(from url: URL) {
         let validExtensions = ["md", "markdown", "mdown", "mkd", "txt"]
         guard validExtensions.contains(url.pathExtension.lowercased()) else { return }
 
         do {
             let contents = try String(contentsOf: url, encoding: .utf8)
             DispatchQueue.main.async {
-                self.markdown = contents
+                self.html = MarkdownParser.toHTML(contents)
                 self.currentFileURL = url
             }
         } catch {

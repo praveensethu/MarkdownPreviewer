@@ -2,19 +2,13 @@ import SwiftUI
 
 @main
 struct MarkdownPreviewerApp: App {
-    @State private var contentView = ContentViewState()
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .onOpenURL { url in
-                    NotificationCenter.default.post(
-                        name: .openMarkdownFile,
-                        object: url
-                    )
-                }
         }
-        .defaultSize(width: 1000, height: 600)
+        .defaultSize(width: 800, height: 600)
         .commands {
             CommandGroup(after: .newItem) {
                 Button("Open...") {
@@ -36,15 +30,17 @@ struct MarkdownPreviewerApp: App {
         panel.canChooseDirectories = false
 
         if panel.runModal() == .OK, let url = panel.url {
-            NotificationCenter.default.post(
-                name: .openMarkdownFile,
-                object: url
-            )
+            NotificationCenter.default.post(name: .openMarkdownFile, object: url)
         }
     }
 }
 
-class ContentViewState: ObservableObject {}
+class AppDelegate: NSObject, NSApplicationDelegate {
+    func application(_ application: NSApplication, open urls: [URL]) {
+        guard let url = urls.first else { return }
+        NotificationCenter.default.post(name: .openMarkdownFile, object: url)
+    }
+}
 
 extension Notification.Name {
     static let openMarkdownFile = Notification.Name("openMarkdownFile")
