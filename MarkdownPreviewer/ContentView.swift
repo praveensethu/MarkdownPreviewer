@@ -2,14 +2,15 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 struct ContentView: View {
-    @State private var html: String = ""
-    @State private var currentFileURL: URL?
+    @ObservedObject private var store = TabStore.shared
     @State private var isDropTargeted = false
 
-    private let defaultMarkdown = """
+    private let defaultHTML = MarkdownParser.toHTML("""
     # Welcome to Markdown Previewer
 
-    Drop a `.md` file here or use **File → Open** to get started.
+    Drop `.md` files here or use **File → Open** to get started.
+
+    You can open multiple files — they'll appear as tabs.
 
     ## Supported Syntax
 
@@ -18,59 +19,92 @@ struct ContentView: View {
     - [Links](https://example.com)
     - Lists, headers, horizontal rules
 
-    > Tip: You can also right-click any `.md` file in Finder and choose "Open With" → MarkdownPreviewer.
-    """
+    > Tip: Right-click any `.md` file in Finder → Open With → MarkdownPreviewer.
+    """)
 
     var body: some View {
-        ZStack {
-            WebView(html: html)
+        VStack(spacing: 0) {
+            if !store.tabs.isEmpty {
+                tabBar
+            }
 
-            if isDropTargeted {
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color.accentColor, lineWidth: 4)
-                    .background(Color.accentColor.opacity(0.1))
-                    .cornerRadius(12)
-                    .padding(8)
+            ZStack {
+                WebView(html: store.selectedTab?.html ?? defaultHTML)
+
+                if isDropTargeted {
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color.blue, lineWidth: 3)
+                        .background(Color.blue.opacity(0.08))
+                        .cornerRadius(8)
+                        .padding(4)
+                }
             }
         }
-        .onAppear {
-            html = MarkdownParser.toHTML(defaultMarkdown)
-        }
+        .background(Color(nsColor: NSColor(red: 0.12, green: 0.12, blue: 0.12, alpha: 1)))
         .onDrop(of: [UTType.fileURL], isTargeted: $isDropTargeted) { providers in
-            handleDrop(providers: providers)
+            for provider in providers {
+                provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { item, _ in
+                    if let data = item as? Data,
+                       let url = URL(dataRepresentation: data, relativeTo: nil) {
+                        DispatchQueue.main.async {
+                            store.openFile(url)
+                        }
+                    }
+                }
+            }
             return true
         }
         .onReceive(NotificationCenter.default.publisher(for: .openMarkdownFile)) { notification in
             if let url = notification.object as? URL {
-                loadFile(from: url)
-            }
-        }
-        .navigationTitle(currentFileURL?.lastPathComponent ?? "Markdown Previewer")
-    }
-
-    private func handleDrop(providers: [NSItemProvider]) {
-        guard let provider = providers.first else { return }
-        provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { item, _ in
-            guard let data = item as? Data,
-                  let url = URL(dataRepresentation: data, relativeTo: nil) else { return }
-            DispatchQueue.main.async {
-                loadFile(from: url)
+                store.openFile(url)
+            } else if let urls = notification.object as? [URL] {
+                for url in urls { store.openFile(url) }
             }
         }
     }
 
-    private func loadFile(from url: URL) {
-        let validExtensions = ["md", "markdown", "mdown", "mkd", "txt"]
-        guard validExtensions.contains(url.pathExtension.lowercased()) else { return }
-
-        do {
-            let contents = try String(contentsOf: url, encoding: .utf8)
-            DispatchQueue.main.async {
-                self.html = MarkdownParser.toHTML(contents)
-                self.currentFileURL = url
+    private var tabBar: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 0) {
+                ForEach(store.tabs) { tab in
+                    tabButton(for: tab)
+                }
             }
-        } catch {
-            print("Failed to read file: \(error)")
+        }
+        .background(Color(nsColor: NSColor(red: 0.15, green: 0.15, blue: 0.15, alpha: 1)))
+    }
+
+    private func tabButton(for tab: MarkdownTab) -> some View {
+        let isSelected = store.selectedTabID == tab.id
+
+        return HStack(spacing: 6) {
+            Text(tab.title)
+                .font(.system(size: 12))
+                .foregroundColor(isSelected ? .white : .gray)
+                .lineLimit(1)
+
+            Button(action: { store.closeTab(tab.id) }) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 8, weight: .bold))
+                    .foregroundColor(.gray)
+            }
+            .buttonStyle(.plain)
+            .opacity(isSelected ? 1 : 0.5)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(isSelected
+            ? Color(nsColor: NSColor(red: 0.12, green: 0.12, blue: 0.12, alpha: 1))
+            : Color.clear)
+        .overlay(
+            Rectangle()
+                .frame(height: isSelected ? 2 : 0)
+                .foregroundColor(.blue),
+            alignment: .top
+        )
+        .contentShape(Rectangle())
+        .onTapGesture {
+            store.selectedTabID = tab.id
         }
     }
 }

@@ -26,19 +26,22 @@ struct MarkdownPreviewerApp: App {
             .init(filenameExtension: "markdown")!,
             .plainText
         ]
-        panel.allowsMultipleSelection = false
+        panel.allowsMultipleSelection = true
         panel.canChooseDirectories = false
 
-        if panel.runModal() == .OK, let url = panel.url {
-            NotificationCenter.default.post(name: .openMarkdownFile, object: url)
+        if panel.runModal() == .OK {
+            for url in panel.urls {
+                TabStore.shared.openFile(url)
+            }
         }
     }
 }
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     func application(_ application: NSApplication, open urls: [URL]) {
-        guard let url = urls.first else { return }
-        NotificationCenter.default.post(name: .openMarkdownFile, object: url)
+        for url in urls {
+            TabStore.shared.openFile(url)
+        }
     }
 }
 
