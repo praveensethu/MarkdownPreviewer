@@ -4,13 +4,11 @@ struct MarkdownParser {
     static func toHTML(_ markdown: String) -> String {
         var html = markdown
 
-        // Code blocks first (before other patterns can match inside them)
-        if let regex = try? NSRegularExpression(pattern: "```\\w*\\n([\\s\\S]*?)```", options: []) {
-            html = regex.stringByReplacingMatches(
-                in: html,
-                range: NSRange(html.startIndex..., in: html),
-                withTemplate: "<pre><code>$1</code></pre>"
-            )
+        // Code blocks first — preserve language for highlight.js
+        if let regex = try? NSRegularExpression(pattern: "```(\\w*)\\n([\\s\\S]*?)```", options: []) {
+            let mutableHTML = NSMutableString(string: html)
+            regex.replaceMatches(in: mutableHTML, range: NSRange(location: 0, length: mutableHTML.length), withTemplate: "<pre><code class=\"language-$1\">$2</code></pre>")
+            html = mutableHTML as String
         }
 
         // Headers (h1-h3) — order matters, match ### before ##

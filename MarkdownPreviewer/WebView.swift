@@ -16,47 +16,63 @@ struct WebView: NSViewRepresentable {
         <html>
         <head>
         <meta charset="utf-8">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
         <style>
             body {
                 font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-                padding: 16px 24px;
-                line-height: 1.6;
-                color: #1d1d1f;
-                background-color: #ffffff;
+                padding: 12px 20px;
+                line-height: 1.5;
+                color: #d4d4d4;
+                background-color: #1e1e1e;
+                margin: 0;
+                font-size: 14px;
             }
-            h1 { font-size: 2em; border-bottom: 1px solid #d1d1d6; padding-bottom: 0.3em; }
-            h2 { font-size: 1.5em; border-bottom: 1px solid #d1d1d6; padding-bottom: 0.3em; }
-            h3 { font-size: 1.25em; }
+            h1 { font-size: 1.8em; border-bottom: 1px solid #333; padding-bottom: 0.2em; color: #e6e6e6; margin: 16px 0 8px; }
+            h2 { font-size: 1.4em; border-bottom: 1px solid #333; padding-bottom: 0.2em; color: #e6e6e6; margin: 14px 0 6px; }
+            h3 { font-size: 1.15em; color: #e6e6e6; margin: 12px 0 4px; }
             code {
-                background-color: #f5f5f7;
-                padding: 2px 6px;
-                border-radius: 4px;
+                background-color: #2d2d2d;
+                padding: 2px 5px;
+                border-radius: 3px;
                 font-size: 0.9em;
-                font-family: "SF Mono", Menlo, monospace;
+                font-family: "SF Mono", Menlo, "Cascadia Code", Consolas, monospace;
+                color: #ce9178;
             }
             pre {
-                background-color: #f5f5f7;
-                padding: 16px;
-                border-radius: 8px;
+                background-color: #1e1e1e;
+                border: 1px solid #333;
+                border-radius: 6px;
+                padding: 12px;
                 overflow-x: auto;
+                margin: 8px 0;
             }
-            pre code { background: none; padding: 0; }
-            a { color: #0066cc; text-decoration: none; }
+            pre code {
+                background: none;
+                padding: 0;
+                color: #d4d4d4;
+                font-size: 13px;
+                line-height: 1.4;
+            }
+            a { color: #569cd6; text-decoration: none; }
             a:hover { text-decoration: underline; }
-            hr { border: none; border-top: 1px solid #d1d1d6; margin: 24px 0; }
-            ul { padding-left: 24px; }
-            li { margin: 4px 0; }
+            hr { border: none; border-top: 1px solid #333; margin: 16px 0; }
+            ul, ol { padding-left: 20px; margin: 4px 0; }
+            li { margin: 2px 0; }
             blockquote {
-                border-left: 4px solid #d1d1d6;
-                margin: 0;
-                padding-left: 16px;
-                color: #6e6e73;
+                border-left: 3px solid #569cd6;
+                margin: 8px 0;
+                padding-left: 12px;
+                color: #808080;
             }
-            p { margin: 8px 0; }
+            p { margin: 6px 0; }
+            strong { color: #e6e6e6; }
+            em { color: #c586c0; }
         </style>
         </head>
         <body>
         \(html)
+        <script>hljs.highlightAll();</script>
         </body>
         </html>
         """
