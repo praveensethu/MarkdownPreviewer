@@ -29,6 +29,15 @@ class DropTargetView: NSView {
         registerForDraggedTypes([.fileURL])
     }
 
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        // Only handle drag events — pass all other events (scroll, click) through
+        return nil
+    }
+
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool {
+        return false
+    }
+
     override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
         guard hasValidFiles(sender) else { return [] }
         isDragging = true
