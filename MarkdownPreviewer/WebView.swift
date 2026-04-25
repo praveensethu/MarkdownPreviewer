@@ -18,6 +18,7 @@ struct WebView: NSViewRepresentable {
         <meta charset="utf-8">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css">
         <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
         <style>
             body {
                 font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
@@ -68,14 +69,41 @@ struct WebView: NSViewRepresentable {
             p { margin: 6px 0; }
             strong { color: #e6e6e6; }
             em { color: #c586c0; }
+            .mermaid {
+                background-color: #1e1e1e;
+                border: 1px solid #333;
+                border-radius: 6px;
+                padding: 12px;
+                margin: 8px 0;
+                text-align: center;
+                overflow-x: auto;
+            }
         </style>
         </head>
         <body>
         \(html)
-        <script>hljs.highlightAll();</script>
+        <script>
+            hljs.highlightAll();
+            if (typeof mermaid !== 'undefined') {
+                mermaid.initialize({ startOnLoad: false, theme: 'dark', securityLevel: 'loose' });
+                mermaid.run({ querySelector: '.mermaid' }).catch(function(e) {
+                    console.error('mermaid render failed', e);
+                });
+            } else {
+                document.addEventListener('DOMContentLoaded', function() {
+                    if (typeof mermaid !== 'undefined') {
+                        mermaid.initialize({ startOnLoad: false, theme: 'dark', securityLevel: 'loose' });
+                        mermaid.run({ querySelector: '.mermaid' });
+                    }
+                });
+            }
+        </script>
         </body>
         </html>
         """
-        webView.loadHTMLString(fullHTML, baseURL: nil)
+        // Use an https baseURL so WKWebView allows loading remote scripts
+        // (highlight.js + mermaid.js from CDN). With nil baseURL the page has
+        // an opaque origin and CDN scripts can be blocked.
+        webView.loadHTMLString(fullHTML, baseURL: URL(string: "https://localhost/"))
     }
 }

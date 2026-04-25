@@ -4,7 +4,23 @@ struct MarkdownParser {
     static func toHTML(_ markdown: String) -> String {
         var html = markdown
 
-        // Code blocks first — preserve language for highlight.js
+        // Pull Mermaid blocks out first so their raw content survives all later
+        // transformations — re-inserted at the end as <div class="mermaid">.
+        var mermaidBlocks: [String] = []
+        if let regex = try? NSRegularExpression(pattern: "```mermaid\\n([\\s\\S]*?)```", options: []) {
+            let nsHTML = html as NSString
+            let matches = regex.matches(in: html, range: NSRange(location: 0, length: nsHTML.length))
+            for match in matches {
+                mermaidBlocks.append(nsHTML.substring(with: match.range(at: 1)))
+            }
+            let mutable = NSMutableString(string: html)
+            for (i, match) in matches.enumerated().reversed() {
+                mutable.replaceCharacters(in: match.range, with: "<!--MERMAID-\(i)-->")
+            }
+            html = mutable as String
+        }
+
+        // Code blocks — preserve language for highlight.js
         if let regex = try? NSRegularExpression(pattern: "```(\\w*)\\n([\\s\\S]*?)```", options: []) {
             let mutableHTML = NSMutableString(string: html)
             regex.replaceMatches(in: mutableHTML, range: NSRange(location: 0, length: mutableHTML.length), withTemplate: "<pre><code class=\"language-$1\">$2</code></pre>")
@@ -112,6 +128,21 @@ struct MarkdownParser {
             }
         }
 
-        return result.joined(separator: "\n")
+        var finalHTML = result.joined(separator: "\n")
+
+        // Re-insert Mermaid blocks. Escape so the browser preserves chars like
+        // <br/> as text — Mermaid reads textContent, not innerHTML.
+        for (i, content) in mermaidBlocks.enumerated() {
+            let escaped = content
+                .replacingOccurrences(of: "&", with: "&amp;")
+                .replacingOccurrences(of: "<", with: "&lt;")
+                .replacingOccurrences(of: ">", with: "&gt;")
+            finalHTML = finalHTML.replacingOccurrences(
+                of: "<!--MERMAID-\(i)-->",
+                with: "<div class=\"mermaid\">\n\(escaped)\n</div>"
+            )
+        }
+
+        return finalHTML
     }
 }
